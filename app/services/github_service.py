@@ -49,3 +49,39 @@ async def fetch_pr_diff(api_url: str) -> str:
         response = await client.get(api_url, headers=headers, timeout=30.0)
         response.raise_for_status()
         return response.text
+
+
+async def fetch_pr_files(pr_api_url: str) -> list[dict]:
+    """Fetch daftar file yang berubah di PR beserta raw content-nya via Contents API."""
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if settings.GITHUB_PAT:
+        headers["Authorization"] = f"token {settings.GITHUB_PAT}"
+
+    # Endpoint API untuk melihat file-file yang berubah dalam sebuah PR
+    files_url = f"{pr_api_url}/files"
+    
+    async with httpx.AsyncClient() as client:
+        logger.info("Fetching PR changed files", url=files_url)
+        response = await client.get(files_url, headers=headers, timeout=30.0)
+        response.raise_for_status()
+        files_data = response.json()
+        
+        processed_files = []
+        for file in files_data:
+            if file["status"] in ["added", "modified", "renamed"]:
+                contents_url = file.get("contents_url")
+                if contents_url:
+                    raw_headers = headers.copy()
+                    raw_headers["Accept"] = "application/vnd.github.raw+json"
+                    
+                    raw_res = await client.get(contents_url, headers=raw_headers, timeout=30.0)
+                    raw_res.raise_for_status()
+                    
+                    processed_files.append({
+                        "filename": file["filename"],
+                        "status": file["status"],
+                        "additions": file["additions"],
+                        "deletions": file["deletions"],
+                        "raw_content": raw_res.text
+                    })
+        return processed_files

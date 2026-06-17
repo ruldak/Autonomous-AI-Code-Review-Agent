@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, BackgroundTasks
 from app.core.security import verify_github_webhook_signature
 from app.models.github_models import WebhookPayload
-from app.services.github_service import fetch_pr_diff, cache_repo_metadata
+from app.services.github_service import fetch_pr_files, fetch_pr_diff, cache_repo_metadata
 from app.utils.logger import logger
+import json
+from app.services.ast_service import parse_code
+from app.core.redis_client import get_redis
 
 router = APIRouter()
 
@@ -55,20 +58,37 @@ async def github_webhook(
 
     return {"message": "Event ignored by agent"}
 
-async def process_pr_review(api_url: str, repo_full_name: str, pr_number: int):
-    """Background task untuk memproses diff (Akan terhubung ke AST & AI di Phase 3 & 4)"""
+async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int):
+    """Background task untuk memproses AST dari file-file yang berubah."""
     try:
-        diff_content = await fetch_pr_diff(api_url)
-        lines_count = len(diff_content.splitlines())
+        # 1. Fetch daftar file yang berubah
+        changed_files = await fetch_pr_files(pr_api_url)
+        logger.info("Fetched changed files", count=len(changed_files), pr_number=pr_number)
         
-        logger.info(
-            "Successfully fetched and processed PR diff", 
-            repo=repo_full_name, 
-            pr_number=pr_number, 
-            diff_lines=lines_count
-        )
-        # TODO: Phase 3 - Kirim diff_content ke Tree-sitter AST Parser
-        # TODO: Phase 4 - Kirim hasil AST ke LangChain Agent
+        redis = get_redis()
         
+        # 2. Parse setiap file dengan Tree-sitter
+        for file in changed_files:
+            # Tree-sitter membutuhkan input berupa bytes, bukan string
+            code_bytes = file["raw_content"].encode('utf-8')
+            ast_result = parse_code(file["filename"], code_bytes)
+            
+            if ast_result.get("supported"):
+                logger.info(
+                    "AST Parsed Successfully",
+                    filename=file["filename"],
+                    functions=ast_result["functions"],
+                    classes=ast_result["classes"],
+                    loc=ast_result["lines_of_code"]
+                )
+                
+                # 3. Cache hasil AST ke Redis (Sesuai blueprint Phase 3)
+                if redis:
+                    cache_key = f"ast:{repo_full_name}:{file['filename']}"
+                    # Simpan selama 1 jam (3600 detik)
+                    await redis.setex(cache_key, 3600, json.dumps(ast_result))
+            else:
+                logger.debug("Skipped AST parsing", filename=file["filename"], reason=ast_result.get("reason"))
+                
     except Exception as e:
         logger.error("Failed to process PR review", error=str(e))
