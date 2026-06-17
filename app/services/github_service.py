@@ -1,0 +1,51 @@
+from github import Github, Auth
+import httpx
+import json
+import time
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from app.config import settings
+from app.core.redis_client import get_redis
+from app.utils.logger import logger
+
+def get_github_client() -> Github:
+    # Menggunakan PAT untuk development. Nanti di Phase 7 bisa diganti ke GitHub App JWT.
+    if settings.GITHUB_PAT:
+        logger.info("Using GitHub Personal Access Token")
+        return Github(auth=Auth.Token(settings.GITHUB_PAT))
+    
+    logger.warning("No GitHub PAT configured. Using unauthenticated client (Rate limits apply).")
+    return Github()
+
+async def cache_repo_metadata(repo_full_name: str, repo_id: int, owner: str):
+    """Menyimpan metadata repo ke Redis untuk akses cepat."""
+    redis = get_redis()
+    if not redis: return
+    
+    cache_key = f"repo_metadata:{repo_full_name}"
+    metadata = {
+        "repo_id": repo_id,
+        "owner": owner,
+        "last_webhook": time.time()
+    }
+    # Cache selama 24 jam
+    await redis.setex(cache_key, 86400, json.dumps(metadata))
+    logger.debug("Cached repo metadata in Redis", repo=repo_full_name)
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(httpx.HTTPStatusError)
+)
+async def fetch_pr_diff(api_url: str) -> str:
+    """Fetch raw diff dari GitHub dengan auto-retry jika gagal."""
+    headers = {"Accept": "application/vnd.github.v3.diff"}
+    
+    # Tambahkan Auth header jika ada PAT
+    if settings.GITHUB_PAT:
+        headers["Authorization"] = f"token {settings.GITHUB_PAT}"
+
+    async with httpx.AsyncClient() as client:
+        logger.info("Fetching PR diff", url=api_url)
+        response = await client.get(api_url, headers=headers, timeout=30.0)
+        response.raise_for_status()
+        return response.text

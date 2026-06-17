@@ -73,3 +73,5 @@ storage/
 
 # VS Code Workspace
 *.code-workspace
+
+*.pem

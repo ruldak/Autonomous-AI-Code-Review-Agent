@@ -6,8 +6,9 @@ class Settings(BaseSettings):
     
     # GitHub
     GITHUB_APP_ID: str = ""
-    GITHUB_PRIVATE_KEY: str = ""
+    GITHUB_PRIVATE_KEY_PATH: str = ""
     GITHUB_WEBHOOK_SECRET: str = ""
+    GITHUB_PAT: str = ""
     
     # Groq
     GROQ_API_KEY: str = ""
