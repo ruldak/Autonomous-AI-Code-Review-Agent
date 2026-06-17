@@ -1,0 +1,75 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Environment Variables
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Python Cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build Files
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# SQLite Database
+*.db
+*.sqlite3
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# FastAPI Uploads
+uploads/
+
+# Alembic
+alembic/versions/*.pyc
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Coverage Reports
+.coverage.*
+coverage.xml
+
+# Temporary Files
+*.tmp
+*.temp
+
+# LanceDB
+.lancedb/
+
+# ChromaDB
+chroma/
+
+# Vector Database Files
+vector_store/
+storage/
+
+# VS Code Workspace
+*.code-workspace
