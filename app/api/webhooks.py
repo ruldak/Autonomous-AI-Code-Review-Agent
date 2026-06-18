@@ -6,6 +6,7 @@ from app.utils.logger import logger
 import json
 from app.services.ast_service import parse_code
 from app.core.redis_client import get_redis
+from app.agents.review_agent import analyze_code_with_ai
 
 router = APIRouter()
 
@@ -59,36 +60,53 @@ async def github_webhook(
     return {"message": "Event ignored by agent"}
 
 async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int):
-    """Background task untuk memproses AST dari file-file yang berubah."""
+    """Background task untuk memproses AST dan AI Analysis."""
     try:
-        # 1. Fetch daftar file yang berubah
         changed_files = await fetch_pr_files(pr_api_url)
         logger.info("Fetched changed files", count=len(changed_files), pr_number=pr_number)
         
         redis = get_redis()
         
-        # 2. Parse setiap file dengan Tree-sitter
         for file in changed_files:
-            # Tree-sitter membutuhkan input berupa bytes, bukan string
             code_bytes = file["raw_content"].encode('utf-8')
             ast_result = parse_code(file["filename"], code_bytes)
             
             if ast_result.get("supported"):
-                logger.info(
-                    "AST Parsed Successfully",
-                    filename=file["filename"],
-                    functions=ast_result["functions"],
-                    classes=ast_result["classes"],
-                    loc=ast_result["lines_of_code"]
-                )
+                logger.info("AST Parsed Successfully", filename=file["filename"])
                 
-                # 3. Cache hasil AST ke Redis (Sesuai blueprint Phase 3)
+                # Cache AST
                 if redis:
                     cache_key = f"ast:{repo_full_name}:{file['filename']}"
-                    # Simpan selama 1 jam (3600 detik)
                     await redis.setex(cache_key, 3600, json.dumps(ast_result))
+                
+                # --- PHASE 4: AI ANALYSIS ---
+                ai_result = await analyze_code_with_ai(
+                    filename=file["filename"],
+                    code=file["raw_content"],
+                    ast_info=ast_result
+                )
+                
+                # Cache hasil AI ke Redis (Akan dipakai di Phase 5 untuk post comment ke GitHub)
+                if redis:
+                    ai_cache_key = f"ai_review:{repo_full_name}:{pr_number}:{file['filename']}"
+                    await redis.setex(ai_cache_key, 86400, ai_result.model_dump_json())
+                    
+                # Log temuan AI ke terminal
+                if ai_result.findings:
+                    for finding in ai_result.findings:
+                        logger.warning(
+                            "AI Finding Detected",
+                            filename=file["filename"],
+                            severity=finding.severity.value,
+                            category=finding.category.value,
+                            line=finding.line,
+                            message=finding.message
+                        )
+                else:
+                    logger.info("No issues found by AI", filename=file["filename"])
+                    
             else:
-                logger.debug("Skipped AST parsing", filename=file["filename"], reason=ast_result.get("reason"))
+                logger.debug("Skipped AST & AI", filename=file["filename"], reason=ast_result.get("reason"))
                 
     except Exception as e:
         logger.error("Failed to process PR review", error=str(e))
