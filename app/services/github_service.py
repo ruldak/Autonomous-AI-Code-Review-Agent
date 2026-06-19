@@ -6,6 +6,32 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from app.config import settings
 from app.core.redis_client import get_redis
 from app.utils.logger import logger
+import re
+
+def extract_valid_lines(patch: str) -> set[int]:
+    """Mengekstrak nomor baris di file baru (RIGHT side) yang benar-benar ada di diff."""
+    valid_lines = set()
+    if not patch:
+        return valid_lines
+        
+    lines = patch.split('\n')
+    current_new_line = 0
+    
+    for line in lines:
+        header_match = re.match(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@', line)
+        if header_match:
+            current_new_line = int(header_match.group(1))
+            continue
+            
+        if line.startswith('+') and not line.startswith('+++'):
+            valid_lines.add(current_new_line)
+            current_new_line += 1
+        elif line.startswith('-') and not line.startswith('---'):
+            pass
+        elif not line.startswith('\\'):
+            current_new_line += 1
+            
+    return valid_lines
 
 def get_github_client() -> Github:
     # Menggunakan PAT untuk development. Nanti di Phase 7 bisa diganti ke GitHub App JWT.
@@ -27,7 +53,7 @@ async def cache_repo_metadata(repo_full_name: str, repo_id: int, owner: str):
         "owner": owner,
         "last_webhook": time.time()
     }
-    # Cache selama 24 jam
+
     await redis.setex(cache_key, 86400, json.dumps(metadata))
     logger.debug("Cached repo metadata in Redis", repo=repo_full_name)
 
@@ -76,12 +102,16 @@ async def fetch_pr_files(pr_api_url: str) -> list[dict]:
                     
                     raw_res = await client.get(contents_url, headers=raw_headers, timeout=30.0)
                     raw_res.raise_for_status()
+
+                    patch = file.get("patch", "")
+                    valid_lines = extract_valid_lines(patch)
                     
                     processed_files.append({
                         "filename": file["filename"],
                         "status": file["status"],
                         "additions": file["additions"],
                         "deletions": file["deletions"],
-                        "raw_content": raw_res.text
+                        "raw_content": raw_res.text,
+                        "valid_lines": list(valid_lines)
                     })
         return processed_files

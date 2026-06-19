@@ -69,7 +69,8 @@ async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int
         
         redis = get_redis()
         ai_results = {}
-        
+        files_valid_lines = {}
+
         for file in changed_files:
             code_bytes = file["raw_content"].encode('utf-8')
             ast_result = parse_code(file["filename"], code_bytes)
@@ -90,6 +91,7 @@ async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int
                 )
 
                 ai_results[file["filename"]] = ai_result
+                files_valid_lines[file["filename"]] = file.get("valid_lines", [])
                 
                 # Cache hasil AI ke Redis (Akan dipakai di Phase 5 untuk post comment ke GitHub)
                 if redis:
@@ -118,7 +120,8 @@ async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int
                 repo_full_name=repo_full_name,
                 pr_number=pr_number,
                 commit_sha=commit_sha,
-                ai_results=ai_results
+                ai_results=ai_results,
+                files_valid_lines=files_valid_lines
             )
                 
     except Exception as e:

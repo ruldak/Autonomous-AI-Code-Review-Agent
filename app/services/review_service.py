@@ -23,7 +23,8 @@ async def post_github_review(
     repo_full_name: str, 
     pr_number: int, 
     commit_sha: str, 
-    ai_results: dict[str, ReviewResult]
+    ai_results: dict[str, ReviewResult],
+    files_valid_lines: dict[str, list[int]]
 ):
     """Membuat dan memposting Review ke GitHub PR dengan mekanisme Fallback."""
     if not settings.GITHUB_PAT:
@@ -39,17 +40,23 @@ async def post_github_review(
     overall_summary = []
     
     for filename, result in ai_results.items():
+        valid_lines_for_file = set(files_valid_lines.get(filename, []))
+
         if result.findings:
-            overall_summary.append(f"### {filename}\n{result.summary}")
+            file_summary = [f"### {filename}\n{result.summary}"]
             for finding in result.findings:
-                comments.append({
-                    "path": filename,
-                    "line": finding.line or 1,
-                    "side": "RIGHT",
-                    "body": f"**[{finding.severity.value.upper()}] {finding.category.value}**\n\n"
-                            f"**Message:** {finding.message}\n\n"
-                            f"**Explanation:** {finding.explanation}"
-                })
+                if finding.line and finding.line in valid_lines_for_file:
+                    comments.append({
+                        "path": filename,
+                        "line": finding.line or 1,
+                        "side": "RIGHT",
+                        "body": f"**[{finding.severity.value.upper()}] {finding.category.value}**\n\n"
+                                f"**Message:** {finding.message}\n\n"
+                                f"**Explanation:** {finding.explanation}"
+                    })
+                else:
+                    file_summary.append(f"- **[{finding.severity.value.upper()}] {finding.category.value}** (Line {finding.line}): {finding.message}")
+            overall_summary.extend(file_summary)
         else:
             overall_summary.append(f"### {filename}\n✅ No issues found.")
 
