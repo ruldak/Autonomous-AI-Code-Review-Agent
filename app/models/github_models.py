@@ -5,6 +5,9 @@ class GitHubUser(BaseModel):
     login: str
     id: int
 
+class GitHubHead(BaseModel):
+    sha: str
+
 class GitHubRepository(BaseModel):
     id: int
     name: str
@@ -20,6 +23,7 @@ class GitHubPullRequest(BaseModel):
     url: str
     diff_url: str
     html_url: str
+    head: GitHubHead
 
 class WebhookPayload(BaseModel):
     action: str

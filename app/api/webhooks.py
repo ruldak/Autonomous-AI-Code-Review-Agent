@@ -7,6 +7,7 @@ import json
 from app.services.ast_service import parse_code
 from app.core.redis_client import get_redis
 from app.agents.review_agent import analyze_code_with_ai
+from app.services.review_service import post_github_review
 
 router = APIRouter()
 
@@ -52,20 +53,22 @@ async def github_webhook(
             process_pr_review, 
             pr.url,
             payload.repository.full_name, 
-            pr.number
+            pr.number,
+            pr.head.sha
         )
         
         return {"message": "Review task queued successfully"}
 
     return {"message": "Event ignored by agent"}
 
-async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int):
+async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int, commit_sha: str):
     """Background task untuk memproses AST dan AI Analysis."""
     try:
         changed_files = await fetch_pr_files(pr_api_url)
         logger.info("Fetched changed files", count=len(changed_files), pr_number=pr_number)
         
         redis = get_redis()
+        ai_results = {}
         
         for file in changed_files:
             code_bytes = file["raw_content"].encode('utf-8')
@@ -85,6 +88,8 @@ async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int
                     code=file["raw_content"],
                     ast_info=ast_result
                 )
+
+                ai_results[file["filename"]] = ai_result
                 
                 # Cache hasil AI ke Redis (Akan dipakai di Phase 5 untuk post comment ke GitHub)
                 if redis:
@@ -107,6 +112,14 @@ async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int
                     
             else:
                 logger.debug("Skipped AST & AI", filename=file["filename"], reason=ast_result.get("reason"))
+
+        if ai_results:
+            await post_github_review(
+                repo_full_name=repo_full_name,
+                pr_number=pr_number,
+                commit_sha=commit_sha,
+                ai_results=ai_results
+            )
                 
     except Exception as e:
         logger.error("Failed to process PR review", error=str(e))
