@@ -77,11 +77,11 @@ async def fetch_pr_diff(api_url: str) -> str:
         return response.text
 
 
-async def fetch_pr_files(pr_api_url: str) -> list[dict]:
+async def fetch_pr_files(pr_api_url: str, token: str) -> list[dict]:
     """Fetch daftar file yang berubah di PR beserta raw content-nya via Contents API."""
     headers = {"Accept": "application/vnd.github.v3+json"}
     if settings.GITHUB_PAT:
-        headers["Authorization"] = f"token {settings.GITHUB_PAT}"
+        headers["Authorization"] = f"token {token}"
 
     # Endpoint API untuk melihat file-file yang berubah dalam sebuah PR
     files_url = f"{pr_api_url}/files"

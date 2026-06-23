@@ -10,6 +10,10 @@ from app.agents.review_agent import analyze_code_with_ai
 from app.services.review_service import post_github_review
 from app.services.security_scanner import scan_code_security
 from app.models.review_models import ReviewResult
+from app.core.github_auth import get_installation_token
+from app.db.session import async_session_maker
+from app.db.models import Tenant
+from sqlalchemy import select
 
 router = APIRouter()
 
@@ -30,10 +34,27 @@ async def github_webhook(
     if event == "ping":
         return {"message": "Pong! Webhook verified."}
 
+    installation_id = payload.installation.id if payload.installation else None
+    if not installation_id:
+        raise HTTPException(status_code=400, detail="Missing installation ID in webhook")
+
     if event == "pull_request" and payload.action in ["opened", "synchronize", "reopened"]:
         pr = payload.pull_request
         if not pr:
             raise HTTPException(status_code=400, detail="Missing pull_request data")
+
+        async with async_session_maker() as session:
+            stmt = select(Tenant).where(Tenant.github_installation_id == installation_id)
+            result = await session.execute(stmt)
+            tenant = result.scalar_one_or_none()
+            
+            if not tenant:
+                tenant = Tenant(github_installation_id=installation_id)
+                session.add(tenant)
+                await session.commit()
+                logger.info("Registered new SaaS tenant", installation_id=installation_id)
+
+        token = await get_installation_token(installation_id)
             
         logger.info(
             "Triggering review for PR", 
@@ -54,17 +75,18 @@ async def github_webhook(
             pr.url,
             payload.repository.full_name, 
             pr.number,
-            pr.head.sha
+            pr.head.sha,
+            token
         )
         
         return {"message": "Review task queued successfully"}
 
     return {"message": "Event ignored by agent"}
 
-async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int, commit_sha: str):
+async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int, commit_sha: str, token: str):
     """Background task untuk memproses AST dan AI Analysis."""
     try:
-        changed_files = await fetch_pr_files(pr_api_url)
+        changed_files = await fetch_pr_files(pr_api_url, token)
         logger.info("Fetched changed files", count=len(changed_files), pr_number=pr_number)
         
         redis = get_redis()
@@ -129,7 +151,8 @@ async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int
                 pr_number=pr_number,
                 commit_sha=commit_sha,
                 ai_results=ai_results,
-                files_valid_lines=files_valid_lines
+                files_valid_lines=files_valid_lines,
+                token=token
             )
                 
     except Exception as e:

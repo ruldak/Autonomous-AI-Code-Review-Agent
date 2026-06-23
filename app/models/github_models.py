@@ -25,9 +25,13 @@ class GitHubPullRequest(BaseModel):
     html_url: str
     head: GitHubHead
 
+class GitHubInstallation(BaseModel):
+    id: int
+
 class WebhookPayload(BaseModel):
     action: str
     number: Optional[int] = None
     pull_request: Optional[GitHubPullRequest] = None
     repository: GitHubRepository
     sender: GitHubUser
+    installation: Optional[GitHubInstallation] = None

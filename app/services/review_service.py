@@ -3,11 +3,11 @@ from app.config import settings
 from app.models.review_models import ReviewResult
 from app.utils.logger import logger
 
-async def post_general_pr_comment(repo_full_name: str, pr_number: int, body: str):
+async def post_general_pr_comment(repo_full_name: str, pr_number: int, body: str, token: str):
     """Fallback: Memposting komentar umum di kolom diskusi PR (menggunakan Issues API)."""
     headers = {
         "Accept": "application/vnd.github.v3+json",
-        "Authorization": f"token {settings.GITHUB_PAT}"
+        "Authorization": f"token {token}"
     }
     
     url = f"https://api.github.com/repos/{repo_full_name}/issues/{pr_number}/comments"
@@ -24,7 +24,8 @@ async def post_github_review(
     pr_number: int, 
     commit_sha: str, 
     ai_results: dict[str, ReviewResult],
-    files_valid_lines: dict[str, list[int]]
+    files_valid_lines: dict[str, list[int]],
+    token: str
 ):
     """Membuat dan memposting Review ke GitHub PR dengan mekanisme Fallback."""
     if not settings.GITHUB_PAT:
@@ -33,7 +34,7 @@ async def post_github_review(
 
     headers = {
         "Accept": "application/vnd.github.v3+json",
-        "Authorization": f"token {settings.GITHUB_PAT}"
+        "Authorization": f"token {token}"
     }
     
     comments = []
