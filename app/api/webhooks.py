@@ -8,6 +8,8 @@ from app.services.ast_service import parse_code
 from app.core.redis_client import get_redis
 from app.agents.review_agent import analyze_code_with_ai
 from app.services.review_service import post_github_review
+from app.services.security_scanner import scan_code_security
+from app.models.review_models import ReviewResult
 
 router = APIRouter()
 
@@ -25,11 +27,9 @@ async def github_webhook(
         repo=payload.repository.full_name
     )
 
-    # GitHub selalu mengirim event 'ping' saat webhook pertama kali dibuat
     if event == "ping":
         return {"message": "Pong! Webhook verified."}
 
-    # Kita hanya peduli pada PR yang baru dibuat, di-update, atau di-reopen
     if event == "pull_request" and payload.action in ["opened", "synchronize", "reopened"]:
         pr = payload.pull_request
         if not pr:
@@ -90,7 +90,15 @@ async def process_pr_review(pr_api_url: str, repo_full_name: str, pr_number: int
                     ast_info=ast_result
                 )
 
-                ai_results[file["filename"]] = ai_result
+                security_findings = scan_code_security(file["filename"], file["raw_content"])
+
+                combined_findings = ai_result.findings + security_findings
+                final_result = ReviewResult(
+                    findings=combined_findings,
+                    summary=ai_result.summary
+                )
+
+                ai_results[file["filename"]] = final_result
                 files_valid_lines[file["filename"]] = file.get("valid_lines", [])
                 
                 # Cache hasil AI ke Redis (Akan dipakai di Phase 5 untuk post comment ke GitHub)
