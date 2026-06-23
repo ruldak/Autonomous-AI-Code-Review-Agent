@@ -17,3 +17,7 @@ ruff
 mypy
 structlog
 python-dotenv
+sqlalchemy[asyncio]
+asyncpg
+psycopg2-binary
+alembic

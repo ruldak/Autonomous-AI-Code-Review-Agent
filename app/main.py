@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Autonomous Code Review Agent",
     description="AI-powered code review using Groq and LangChain",
-    version="0.2.0",
+    version="0.7.0",
     lifespan=lifespan
 )
 
@@ -25,4 +25,4 @@ app.include_router(webhooks_router, tags=["Webhooks"])
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "code-review-agent", "phase": 1}
+    return {"status": "healthy", "service": "code-review-saas", "phase": 7}
