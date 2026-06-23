@@ -86,11 +86,11 @@ async def post_github_review(
                     error=e.response.text
                 )
                 
-                await post_general_pr_comment(repo_full_name, pr_number, review_body)
+                await post_general_pr_comment(repo_full_name, pr_number, review_body, token)
                 
                 for c in comments:
                     fallback_body = f"**File:** `{c['path']}` (Line {c['line']})\n\n{c['body']}"
-                    await post_general_pr_comment(repo_full_name, pr_number, fallback_body)
+                    await post_general_pr_comment(repo_full_name, pr_number, fallback_body, token)
                     
                 logger.info("Successfully posted fallback comments to PR", pr_number=pr_number)
             else:
