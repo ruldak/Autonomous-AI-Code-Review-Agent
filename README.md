@@ -112,6 +112,8 @@ INFO:  [2026-06-23 21:38:17] Successfully posted inline GitHub review [pr_number
 ### Step 3: The Code Review Appears on GitHub
 On GitHub, the pull request interface updates immediately. The developer is notified with inline code reviews matching the exact lines in their code:
 
+![Inline Comment Screenshot](inline_comment_ss.png)
+
 ---
 
 #### **Review Box on Line 5**
@@ -153,43 +155,6 @@ On GitHub, the pull request interface updates immediately. The developer is noti
 ## 🏗️ Technical Architecture & Flow
 
 The application leverages a decoupled background task model powered by **Celery** with **Redis** as a message broker. This design allows the FastAPI web app to respond to GitHub's webhook request immediately, preventing webhook timeout issues, while distributed Celery workers execute deep static syntax tree parsing and large language model evaluations asynchronously.
-
-### Architecture Diagram
-Below is the execution flow of a Pull Request review:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Dev as Developer
-    participant GH as GitHub Webhook
-    participant API as FastAPI Web App
-    participant Broker as Redis (Broker & Cache)
-    participant Worker as Celery Worker
-    participant DB as Postgres (Tenants)
-    participant LLM as Groq LLM (LangChain)
-    
-    Dev->>GH: Open/Update Pull Request
-    GH->>API: HTTP POST /webhook (HMAC Signature)
-    Note over API: Verify signature using HMAC-SHA256
-    API->>DB: Fetch/Create Tenant (installation_id)
-    API->>Broker: Cache Repo Metadata
-    API->>Broker: Enqueue Review Task (process_pr_review_task)
-    API-->>GH: HTTP 200 OK {"message": "Review task queued successfully"}
-    
-    Broker->>Worker: Consume Task
-    critical Run Review Processing (Asynchronous)
-        Worker->>GH: Fetch PR Files & Changed Diffs
-        Worker->>Worker: Parse AST (Tree-Sitter JS/Python)
-        Worker->>Broker: Cache parsed AST nodes (1h)
-        Worker->>Worker: Run Security Pattern Scanners (Regex)
-        Worker->>LLM: Send Structured Output Request (Code + AST metrics)
-        LLM-->>Worker: Return JSON (findings, summary)
-        Worker->>Broker: Cache Review Results (24h)
-        Worker->>GH: POST /pulls/{id}/reviews (Inline Comments)
-    end
-```
-
----
 
 ## 🛡️ Code Scanning Strategies
 
