@@ -83,12 +83,19 @@ function processPayment(userInput) {
 ```
 
 ### Step 2: The Agent Receives the Event and Triggers Scanning
-Instantly, the FastAPI server receives a webhook notification from GitHub. The server validates the request and processes the task in the background. If you inspect the server console log, here is what you would see:
+Instantly, the FastAPI server receives a webhook notification from GitHub, validates the request, and queues a review task to Celery via Redis. The Celery worker processes the review asynchronously. If you inspect the logs, here is what you would see:
 
-```json
+**FastAPI Server Log:**
+```log
 INFO:  [2026-06-23 21:38:12] Received GitHub webhook [event=pull_request, action=opened, repo=myorg/payment-system]
 INFO:  [2026-06-23 21:38:13] Registered new SaaS tenant [installation_id=45991823]
 INFO:  [2026-06-23 21:38:13] Triggering review for PR [pr_number=42, repo=myorg/payment-system]
+INFO:  [2026-06-23 21:38:13] Enqueued review task to Celery [task=process_pr_review_task]
+```
+
+**Celery Worker Log:**
+```log
+INFO:  [2026-06-23 21:38:13] Starting Celery task [pr_number=42, repo=myorg/payment-system]
 INFO:  [2026-06-23 21:38:13] Fetching PR changed files [url=https://api.github.com/repos/myorg/payment-system/pulls/42/files]
 INFO:  [2026-06-23 21:38:14] Fetched changed files [count=1, pr_number=42]
 INFO:  [2026-06-23 21:38:14] Tree-sitter: AST Parsed Successfully [filename=payment_processor.js, language=javascript]
@@ -145,7 +152,7 @@ On GitHub, the pull request interface updates immediately. The developer is noti
 
 ## 🏗️ Technical Architecture & Flow
 
-The application leverages a decoupled background task model. This design allows it to respond to GitHub's webhook request immediately, preventing webhook timeout issues, while executing deep static syntax tree parsing and large language model evaluations asynchronously.
+The application leverages a decoupled background task model powered by **Celery** with **Redis** as a message broker. This design allows the FastAPI web app to respond to GitHub's webhook request immediately, preventing webhook timeout issues, while distributed Celery workers execute deep static syntax tree parsing and large language model evaluations asynchronously.
 
 ### Architecture Diagram
 Below is the execution flow of a Pull Request review:
@@ -156,27 +163,29 @@ sequenceDiagram
     actor Dev as Developer
     participant GH as GitHub Webhook
     participant API as FastAPI Web App
+    participant Broker as Redis (Broker & Cache)
+    participant Worker as Celery Worker
     participant DB as Postgres (Tenants)
-    participant Redis as Redis Cache
     participant LLM as Groq LLM (LangChain)
     
     Dev->>GH: Open/Update Pull Request
     GH->>API: HTTP POST /webhook (HMAC Signature)
     Note over API: Verify signature using HMAC-SHA256
     API->>DB: Fetch/Create Tenant (installation_id)
-    API->>Redis: Cache Repo Metadata
-    API->>API: Queue Background Task
+    API->>Broker: Cache Repo Metadata
+    API->>Broker: Enqueue Review Task (process_pr_review_task)
     API-->>GH: HTTP 200 OK {"message": "Review task queued successfully"}
     
+    Broker->>Worker: Consume Task
     critical Run Review Processing (Asynchronous)
-        API->>GH: Fetch PR Files & Changed Diffs
-        API->>API: Parse AST (Tree-Sitter JS/Python)
-        API->>Redis: Cache parsed AST nodes (1h)
-        API->>API: Run Security Pattern Scanners (Regex)
-        API->>LLM: Send Structured Output Request (Code + AST metrics)
-        LLM-->>API: Return JSON (findings, summary)
-        API->>Redis: Cache Review Results (24h)
-        API->>GH: POST /pulls/{id}/reviews (Inline Comments)
+        Worker->>GH: Fetch PR Files & Changed Diffs
+        Worker->>Worker: Parse AST (Tree-Sitter JS/Python)
+        Worker->>Broker: Cache parsed AST nodes (1h)
+        Worker->>Worker: Run Security Pattern Scanners (Regex)
+        Worker->>LLM: Send Structured Output Request (Code + AST metrics)
+        LLM-->>Worker: Return JSON (findings, summary)
+        Worker->>Broker: Cache Review Results (24h)
+        Worker->>GH: POST /pulls/{id}/reviews (Inline Comments)
     end
 ```
 
@@ -272,6 +281,16 @@ erDiagram
     uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
     ```
     Your health endpoint is now accessible at `http://127.0.0.1:8000/health`.
+
+6.  **Start the Celery Worker:**
+    In a new terminal window (with virtual environment active), start the Celery worker to consume the queued review tasks:
+    ```bash
+    celery -A app.core.celery_app.celery_app worker --loglevel=info
+    ```
+    *Note for Windows users:* If you are running locally on Windows without WSL, you should run with the `--pool=solo` parameter:
+    ```bash
+    celery -A app.core.celery_app.celery_app worker --loglevel=info --pool=solo
+    ```
 
 ---
 
