@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from app.utils.logger import setup_logger, logger
 from app.core.redis_client import init_redis
 from app.api.webhooks import router as webhooks_router
+from app.api.reviews import router as reviews_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,11 +18,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Autonomous Code Review Agent",
     description="AI-powered code review using Groq and LangChain",
-    version="0.7.0",
+    version="0.7.1",
     lifespan=lifespan
 )
 
 app.include_router(webhooks_router, tags=["Webhooks"])
+app.include_router(reviews_router)
 
 @app.get("/health")
 async def health_check():

@@ -74,7 +74,8 @@ async def github_webhook(
             payload.repository.full_name, 
             pr.number,
             pr.head.sha,
-            token
+            token,
+            installation_id
         )
         
         return {"message": "Review task queued successfully"}
