@@ -204,6 +204,35 @@ erDiagram
 
 ---
 
+## 📊 Analytics & Dashboard API
+The application exposes RESTful endpoints to retrieve historical review data and SaaS metrics. These endpoints are designed to be consumed by a frontend dashboard (e.g., React, Next.js, Streamlit).
+
+### `GET /reviews/logs`
+Retrieves paginated review history.
+**Query Parameters:**
+- `page` (int): Page number (default: 1)
+- `per_page` (int): Items per page (default: 20, max 100)
+- `repo_full_name` (string, optional): Filter by repository name
+- `status` (string, optional): Filter by status (`SUCCESS`, `FAILED`)
+
+### `GET /reviews/stats`
+Retrieves aggregated SaaS metrics and success rates.
+**Query Parameters:**
+- `repo_full_name` (string, optional): Filter stats by repository
+
+**Response Example:**
+```json
+{
+  "total_reviews": 150,
+  "successful_reviews": 145,
+  "failed_reviews": 5,
+  "success_rate_percent": 96.67,
+  "total_bugs_detected": 342
+}
+```
+
+---
+
 ## 🚀 Local Setup & Installation
 
 ### Prerequisites
@@ -216,8 +245,8 @@ erDiagram
 ### Steps
 1.  **Clone the Repository:**
     ```bash
-    git clone https://github.com/yourusername/autonomous-code-review.git
-    cd autonomous-code-review
+    git clone https://github.com/ruldak/Autonomous-AI-Code-Review-Agent.git
+    cd Autonomous-AI-Code-Review-Agent
     ```
 
 2.  **Create a Virtual Environment & Install Dependencies:**
@@ -275,6 +304,18 @@ This starts:
 *   *(Includes active healthcheck directives, ensuring services are ready before starting dependent containers).*
 
 ---
+
+## 🔗 Multi-Tenant SaaS Installation Flow
+To allow other users or organizations to use your SaaS without manual token configuration, the application leverages the official GitHub App Installation Flow:
+
+1. **Register a GitHub App** in your GitHub Developer Settings.
+2. **Set the Webhook URL** to your public server endpoint (e.g., `https://your-domain.com/webhook`).
+3. **Set the Setup URL** to your callback endpoint (e.g., `https://your-domain.com/github/setup`).
+4. **Share the public installation link** with your users: 
+   `https://github.com/apps/YOUR-APP-NAME/installations/new`
+5. When a user installs the app, GitHub redirects them to your Setup URL with an `installation_id`. Your server automatically registers this ID as a new Tenant in PostgreSQL, and the bot instantly starts reviewing their Pull Requests using isolated JWT credentials.
+
+___
 
 ## ⚙️ Environment Configuration
 
