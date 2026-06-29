@@ -17,13 +17,11 @@ async def get_review_logs(
     status: Optional[str] = Query(None, description="Filter by status (SUCCESS/FAILED)"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Mengambil daftar log review dengan pagination dan filtering."""
+    """Retrieve a list of review logs with pagination and filtering."""
     
-    # Base query
     query = select(ReviewLog)
     count_query = select(func.count(ReviewLog.id))
     
-    # Apply filters
     if repo_full_name:
         query = query.where(ReviewLog.repo_full_name == repo_full_name)
         count_query = count_query.where(ReviewLog.repo_full_name == repo_full_name)
@@ -31,15 +29,12 @@ async def get_review_logs(
         query = query.where(ReviewLog.status == status.upper())
         count_query = count_query.where(ReviewLog.status == status.upper())
         
-    # Get total count
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
-    # Apply pagination & ordering (terbaru di atas)
     offset = (page - 1) * per_page
     query = query.order_by(ReviewLog.created_at.desc()).offset(offset).limit(per_page)
     
-    # Execute query
     result = await db.execute(query)
     logs = result.scalars().all()
     
@@ -58,7 +53,7 @@ async def get_review_stats(
     repo_full_name: Optional[str] = Query(None, description="Filter stats by repository"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Endpoint analitik: total review, success rate, dan total findings."""
+    """Analytical endpoints: total reviews, success rate, and total findings."""
     
     query = select(ReviewLog)
     if repo_full_name:

@@ -14,7 +14,7 @@ from app.db.session import async_session_maker
 from app.db.models import Tenant, ReviewLog
 
 async def _run_review(pr_api_url: str, repo_full_name: str, pr_number: int, commit_sha: str, token: str, installation_id: int):
-    """Fungsi async inti yang menjalankan alur review."""
+    """The core async function that executes the review workflow."""
     redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
     status = "SUCCESS"
     total_findings = 0

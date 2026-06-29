@@ -7,11 +7,11 @@ from app.core.redis_client import get_redis
 from app.utils.logger import logger
 
 def generate_jwt() -> str:
-    """Membuat JWT untuk autentikasi GitHub App."""
+    """Creating a JWT for GitHub App authentication."""
     now = int(time.time())
     payload = {
-        "iat": now - 60,  # Issued at time (60 detik di masa lalu untuk antisipasi clock drift)
-        "exp": now + (10 * 60),  # Expire dalam 10 menit (maksimal dari GitHub)
+        "iat": now - 60,  # Issued at time (60 seconds in the past to account for clock drift)
+        "exp": now + (10 * 60),  # Expires in 10 minutes (GitHub maximum)
         "iss": settings.GITHUB_APP_ID
     }
     
@@ -21,16 +21,14 @@ def generate_jwt() -> str:
         
     private_key = private_key_path.read_text()
     
-    # Sign JWT menggunakan algoritma RS256
     encoded_jwt = jwt.encode(payload, private_key, algorithm="RS256")
     return encoded_jwt
 
 async def get_installation_token(installation_id: int) -> str:
-    """Mendapatkan Installation Access Token (IAT) dengan caching Redis."""
+    """Obtaining an Installation Access Token (IAT) with Redis caching."""
     redis = get_redis()
     cache_key = f"github_token:{installation_id}"
     
-    # Cek cache dulu
     if redis:
         cached_token = await redis.get(cache_key)
         if cached_token:
@@ -40,7 +38,7 @@ async def get_installation_token(installation_id: int) -> str:
     logger.info("Generating new installation token", installation_id=installation_id)
     jwt_token = generate_jwt()
     
-    # Tukar JWT dengan Installation Token
+    # Exchange JWT for Installation Token
     url = f"https://api.github.com/app/installations/{installation_id}/access_tokens"
     headers = {
         "Accept": "application/vnd.github+json",
@@ -54,7 +52,6 @@ async def get_installation_token(installation_id: int) -> str:
         data = response.json()
         token = data["token"]
         
-        # Cache token selama 55 menit (Token asli berlaku 60 menit)
         if redis:
             await redis.setex(cache_key, 55 * 60, token)
             

@@ -62,7 +62,6 @@ async def github_webhook(
             repo=payload.repository.full_name
         )
         
-        # Cache metadata repo ke Redis
         await cache_repo_metadata(
             payload.repository.full_name, 
             payload.repository.id, 

@@ -9,7 +9,7 @@ from app.utils.logger import logger
 import re
 
 def extract_valid_lines(patch: str) -> set[int]:
-    """Mengekstrak nomor baris di file baru (RIGHT side) yang benar-benar ada di diff."""
+    """Extracting the line numbers in the new file (RIGHT side) that actually appear in the diff."""
     valid_lines = set()
     if not patch:
         return valid_lines
@@ -34,7 +34,7 @@ def extract_valid_lines(patch: str) -> set[int]:
     return valid_lines
 
 def get_github_client() -> Github:
-    # Menggunakan PAT untuk development. Nanti di Phase 7 bisa diganti ke GitHub App JWT.
+    # Using PAT for development.
     if settings.GITHUB_PAT:
         logger.info("Using GitHub Personal Access Token")
         return Github(auth=Auth.Token(settings.GITHUB_PAT))
@@ -43,7 +43,7 @@ def get_github_client() -> Github:
     return Github()
 
 async def cache_repo_metadata(repo_full_name: str, repo_id: int, owner: str):
-    """Menyimpan metadata repo ke Redis untuk akses cepat."""
+    """Store repository metadata in Redis for fast access."""
     redis = get_redis()
     if not redis: return
     
@@ -57,33 +57,12 @@ async def cache_repo_metadata(repo_full_name: str, repo_id: int, owner: str):
     await redis.setex(cache_key, 86400, json.dumps(metadata))
     logger.debug("Cached repo metadata in Redis", repo=repo_full_name)
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type(httpx.HTTPStatusError)
-)
-async def fetch_pr_diff(api_url: str) -> str:
-    """Fetch raw diff dari GitHub dengan auto-retry jika gagal."""
-    headers = {"Accept": "application/vnd.github.v3.diff"}
-    
-    # Tambahkan Auth header jika ada PAT
-    if settings.GITHUB_PAT:
-        headers["Authorization"] = f"token {settings.GITHUB_PAT}"
-
-    async with httpx.AsyncClient() as client:
-        logger.info("Fetching PR diff", url=api_url)
-        response = await client.get(api_url, headers=headers, timeout=30.0)
-        response.raise_for_status()
-        return response.text
-
-
 async def fetch_pr_files(pr_api_url: str, token: str) -> list[dict]:
-    """Fetch daftar file yang berubah di PR beserta raw content-nya via Contents API."""
+    """Fetch the list of changed files in the PR, along with their raw content, via the Contents API."""
     headers = {"Accept": "application/vnd.github.v3+json"}
     if settings.GITHUB_PAT:
         headers["Authorization"] = f"token {token}"
 
-    # Endpoint API untuk melihat file-file yang berubah dalam sebuah PR
     files_url = f"{pr_api_url}/files"
     
     async with httpx.AsyncClient() as client:

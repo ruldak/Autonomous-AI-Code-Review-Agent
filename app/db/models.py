@@ -10,7 +10,6 @@ class Tenant(Base):
     github_installation_id = Column(Integer, unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relasi ke log review
     review_logs = relationship("ReviewLog", back_populates="tenant")
 
 class ReviewLog(Base):
@@ -22,7 +21,7 @@ class ReviewLog(Base):
     pr_number = Column(Integer, nullable=False)
     status = Column(String, default="PENDING") # PENDING, SUCCESS, FAILED
     findings_count = Column(Integer, default=0)
-    ai_metadata = Column(JSON, nullable=True) # Menyimpan info token, model, dll
+    ai_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     tenant = relationship("Tenant", back_populates="review_logs")

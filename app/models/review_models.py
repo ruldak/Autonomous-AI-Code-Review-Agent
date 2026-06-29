@@ -21,12 +21,12 @@ class Category(str, Enum):
     CONFIGURATION = "Configuration"
 
 class Finding(BaseModel):
-    severity: Severity = Field(description="Tingkat keparahan issue")
-    line: Optional[int] = Field(description="Nomor baris di mana issue ditemukan, jika ada")
-    category: Category = Field(description="Kategori issue")
-    message: str = Field(description="Pesan singkat tentang issue")
-    explanation: str = Field(description="Penjelasan detail mengapa ini adalah issue tanpa memberikan saran perbaikan")
+    severity: Severity = Field(description="Severity level of the issue")
+    line: Optional[int] = Field(description="Line number where the issue was found, if any")
+    category: Category = Field(description="Category of the issue")
+    message: str = Field(description="Brief message about the issue")
+    explanation: str = Field(description="Detailed explanation of why this is an issue without providing remediation suggestions")
 
 class ReviewResult(BaseModel):
-    findings: List[Finding] = Field(description="Daftar temuan issue dari code review")
-    summary: str = Field(description="Ringkasan singkat dari hasil review")
+    findings: List[Finding] = Field(description="List of issue findings from the code review")
+    summary: str = Field(description="Brief summary of the review results")

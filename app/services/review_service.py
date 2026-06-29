@@ -4,7 +4,7 @@ from app.models.review_models import ReviewResult
 from app.utils.logger import logger
 
 async def post_general_pr_comment(repo_full_name: str, pr_number: int, body: str, token: str):
-    """Fallback: Memposting komentar umum di kolom diskusi PR (menggunakan Issues API)."""
+    """Fallback: Posting a general comment in the PR discussion section (using the Issues API)."""
     headers = {
         "Accept": "application/vnd.github.v3+json",
         "Authorization": f"token {token}"
@@ -27,7 +27,7 @@ async def post_github_review(
     files_valid_lines: dict[str, list[int]],
     token: str
 ):
-    """Membuat dan memposting Review ke GitHub PR dengan mekanisme Fallback."""
+    """Creating and posting a review to a GitHub PR with a fallback mechanism."""
     if not settings.GITHUB_PAT:
         logger.warning("GITHUB_PAT not set. Cannot post review to GitHub.")
         return
