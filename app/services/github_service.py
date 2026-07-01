@@ -80,7 +80,12 @@ async def fetch_pr_files(pr_api_url: str, token: str) -> list[dict]:
                     raw_headers["Accept"] = "application/vnd.github.raw+json"
                     
                     raw_res = await client.get(contents_url, headers=raw_headers, timeout=30.0)
-                    raw_res.raise_for_status()
+
+                    try:
+                        raw_res.raise_for_status()
+                        raw_content = raw_res.text
+                    finally:
+                        pass
 
                     patch = file.get("patch", "")
                     valid_lines = extract_valid_lines(patch)
@@ -90,7 +95,7 @@ async def fetch_pr_files(pr_api_url: str, token: str) -> list[dict]:
                         "status": file["status"],
                         "additions": file["additions"],
                         "deletions": file["deletions"],
-                        "raw_content": raw_res.text,
+                        "raw_content": raw_content,
                         "valid_lines": list(valid_lines)
                     })
         return processed_files

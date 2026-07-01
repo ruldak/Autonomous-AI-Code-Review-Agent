@@ -76,8 +76,11 @@ async def post_github_review(
         try:
             logger.info("Attempting to post inline review to GitHub", url=url)
             response = await client.post(url, headers=headers, json=payload, timeout=30.0)
-            response.raise_for_status()
-            logger.info("Successfully posted inline GitHub review", pr_number=pr_number)
+            try:
+                response.raise_for_status()
+                logger.info("Successfully posted inline GitHub review", pr_number=pr_number)
+            finally:
+                await response.aclose()
             
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 422:
@@ -99,3 +102,4 @@ async def post_github_review(
                     error=e.response.text, 
                     status_code=e.response.status_code
                 )
+            await e.response.aclose()

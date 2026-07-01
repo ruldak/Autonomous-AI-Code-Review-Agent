@@ -1,4 +1,5 @@
 import asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import select
 import redis.asyncio as aioredis
 from app.core.celery_app import celery_app
@@ -10,7 +11,6 @@ from app.services.review_service import post_github_review
 from app.services.security_scanner import scan_code_security
 from app.agents.review_agent import analyze_code_with_ai
 from app.models.review_models import ReviewResult
-from app.db.session import async_session_maker
 from app.db.models import Tenant, ReviewLog
 
 async def _run_review(pr_api_url: str, repo_full_name: str, pr_number: int, commit_sha: str, token: str, installation_id: int):
@@ -65,23 +65,28 @@ async def _run_review(pr_api_url: str, repo_full_name: str, pr_number: int, comm
         await redis.close()
 
         try:
-            async with async_session_maker() as session:
-                stmt = select(Tenant).where(Tenant.github_installation_id == installation_id)
-                result = await session.execute(stmt)
-                tenant = result.scalar_one_or_none()
-                
-                if tenant:
-                    log = ReviewLog(
-                        tenant_id=tenant.id,
-                        repo_full_name=repo_full_name,
-                        pr_number=pr_number,
-                        status=status,
-                        findings_count=total_findings,
-                        ai_metadata={"model": "openai/gpt-oss-120b", "engine": "groq"}
-                    )
-                    session.add(log)
-                    await session.commit()
-                    logger.info("Saved review log to database", status=status, findings=total_findings)
+            engine = create_async_engine(settings.DATABASE_URL, echo=False)
+            local_session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+            
+            async with local_session_maker() as session:
+                async with session.begin():
+                    stmt = select(Tenant).where(Tenant.github_installation_id == installation_id)
+                    result = await session.execute(stmt)
+                    tenant = result.scalar_one_or_none()
+                    
+                    if tenant:
+                        log = ReviewLog(
+                            tenant_id=tenant.id,
+                            repo_full_name=repo_full_name,
+                            pr_number=pr_number,
+                            status=status,
+                            findings_count=total_findings,
+                            ai_metadata={"model": "openai/gpt-oss-120b", "engine": "groq"}
+                        )
+                        session.add(log)
+                        logger.info("Saved review log", status=status, findings=total_findings)
+            
+            await engine.dispose()
         except Exception as db_err:
             logger.error("Failed to save review log", error=str(db_err))
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
 from app.core.security import verify_github_webhook_signature
 from app.models.github_models import WebhookPayload
-from app.services.github_service import fetch_pr_files, fetch_pr_diff, cache_repo_metadata
+from app.services.github_service import fetch_pr_files, cache_repo_metadata
 from app.utils.logger import logger
 import json
 from app.services.ast_service import parse_code
