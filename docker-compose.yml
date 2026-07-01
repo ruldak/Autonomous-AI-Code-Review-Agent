@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # FastAPI Web Server
   web:
@@ -13,10 +11,8 @@ services:
       - APP_ENV=production
       - LOG_LEVEL=INFO
     depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+      - redis
+      - postgres
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -38,10 +34,8 @@ services:
       - APP_ENV=production
       - LOG_LEVEL=INFO
     depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+      - redis
+      - postgres
     restart: unless-stopped
     networks:
       - app_network
@@ -57,8 +51,7 @@ services:
       - APP_ENV=production
       - LOG_LEVEL=INFO
     depends_on:
-      redis:
-        condition: service_healthy
+      - redis
     restart: unless-stopped
     networks:
       - app_network

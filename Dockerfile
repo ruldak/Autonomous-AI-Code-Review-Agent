@@ -19,14 +19,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -m -u 1000 appuser
 
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 
-COPY ./app ./app
-COPY ./migrations ./migrations
-COPY alembic.ini .
-COPY private-key.pem .
+COPY --chown=appuser:appuser ./app ./app
+COPY --chown=appuser:appuser ./migrations ./migrations
+COPY --chown=appuser:appuser alembic.ini .
+COPY --chown=appuser:appuser private-key.pem .
 
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/home/appuser/.local/bin:$PATH
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
