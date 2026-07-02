@@ -1,4 +1,4 @@
-# 🤖 Autonomous AI Code Review Agent
+# Autonomous AI Code Review Agent
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Groq](https://img.shields.io/badge/Groq-F5A623?style=for-the-badge&logo=openai&logoColor=white)](https://groq.com/)
@@ -11,20 +11,20 @@ An enterprise-grade, multi-tenant AI-powered code review assistant. It hooks dir
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
-- [💡 Layperson's Guide (What & Why)](#-laypersons-guide-what--why)
-- [🎬 See it in Action (Zero-Installation Walkthrough)](#-see-it-in-action-zero-installation-walkthrough)
-- [🏗️ Technical Architecture & Flow](#%EF%B8%8F-technical-architecture--flow)
-- [🛡️ Code Scanning Strategies](#%EF%B8%8F-code-scanning-strategies)
-- [💾 Database & Storage Schema](#-database--storage-schema)
-- [🚀 Local Setup & Installation](#-local-setup--installation)
-- [🐳 Production Deployment with Docker Compose](#-production-deployment-with-docker-compose)
-- [⚙️ Environment Configuration](#%EF%B8%8F-environment-configuration)
+- [Layperson's Guide (What & Why)](#-laypersons-guide-what--why)
+- [See it in Action (Zero-Installation Walkthrough)](#-see-it-in-action-zero-installation-walkthrough)
+- [Technical Architecture & Flow](#%EF%B8%8F-technical-architecture--flow)
+- [Code Scanning Strategies](#%EF%B8%8F-code-scanning-strategies)
+- [Database & Storage Schema](#-database--storage-schema)
+- [Local Setup & Installation](#-local-setup--installation)
+- [Production Deployment with Docker Compose](#-production-deployment-with-docker-compose)
+- [Environment Configuration](#%EF%B8%8F-environment-configuration)
 
 ---
 
-## 💡 Layperson's Guide (What & Why)
+## Layperson's Guide (What & Why)
 
 ### What does this tool do?
 Imagine hiring a senior, world-class developer whose *only* job is to review changes in your code, 24 hours a day, 7 days a week, and who gets the job done in less than 3 seconds. 
@@ -52,7 +52,7 @@ You don't need to open terminal windows or touch code! You just use GitHub as us
 
 ---
 
-## 🎬 See it in Action (Zero-Installation Walkthrough)
+## See it in Action (Zero-Installation Walkthrough)
 
 To understand exactly how the agent behaves, let’s walk through a realistic scenario. You don't need to install or run the application; the steps below illustrate exactly how it works in real-time.
 
@@ -152,11 +152,11 @@ On GitHub, the pull request interface updates immediately. The developer is noti
 
 ---
 
-## 🏗️ Technical Architecture & Flow
+## Technical Architecture & Flow
 
 The application leverages a decoupled background task model powered by **Celery** with **Redis** as a message broker. This design allows the FastAPI web app to respond to GitHub's webhook request immediately, preventing webhook timeout issues, while distributed Celery workers execute deep static syntax tree parsing and large language model evaluations asynchronously.
 
-## 🛡️ Code Scanning Strategies
+## Code Scanning Strategies
 
 The code analysis process is divided into two distinct components: a static, high-speed Regex compliance engine and an Abstract Syntax Tree (AST) augmented Language Model.
 
@@ -174,7 +174,7 @@ Using the high-speed tree-sitter libraries (`tree-sitter-python` and `tree-sitte
 
 ---
 
-## 💾 Database & Storage Schema
+## Database & Storage Schema
 
 The SQL database (configured via **SQLAlchemy Async Session**) maps SaaS integrations and review logs.
 
@@ -204,7 +204,7 @@ erDiagram
 
 ---
 
-## 📊 Analytics & Dashboard API
+## Analytics & Dashboard API
 The application exposes RESTful endpoints to retrieve historical review data and SaaS metrics. These endpoints are designed to be consumed by a frontend dashboard (e.g., React, Next.js, Streamlit).
 
 ### `GET /reviews/logs`
@@ -233,7 +233,7 @@ Retrieves aggregated SaaS metrics and success rates.
 
 ---
 
-## 🚀 Local Setup & Installation
+## Local Setup & Installation
 
 ### Prerequisites
 *   Python 3.11+ installed.
@@ -288,7 +288,7 @@ Retrieves aggregated SaaS metrics and success rates.
 
 ---
 
-## 🐳 Production Deployment with Docker Compose
+## Production Deployment with Docker Compose
 
 For production, the service containerizes components into isolated services (FastAPI, Redis, PostgreSQL).
 
@@ -305,7 +305,7 @@ This starts:
 
 ---
 
-## 🔗 Multi-Tenant SaaS Installation Flow
+## Multi-Tenant SaaS Installation Flow
 To allow other users or organizations to use your SaaS without manual token configuration, the application leverages the official GitHub App Installation Flow:
 
 1. **Register a GitHub App** in your GitHub Developer Settings.
@@ -317,7 +317,7 @@ To allow other users or organizations to use your SaaS without manual token conf
 
 ___
 
-## ⚙️ Environment Configuration
+## Environment Configuration
 
 Create a file named `.env` in the root directory. Below is the list of expected values:
 
