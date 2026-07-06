@@ -12,6 +12,23 @@ from app.services.security_scanner import scan_code_security
 from app.agents.review_agent import analyze_code_with_ai
 from app.models.review_models import ReviewResult
 from app.db.models import Tenant, ReviewLog
+import dataclasses
+
+def serialize_finding(f):
+    """
+    Helper to safely serialize Finding objects into native Python dictionaries.
+    Handles Pydantic V1/V2, standard dataclasses, and Enums.
+    """
+    if hasattr(f, "model_dump"):
+        return f.model_dump(mode="json")
+    elif hasattr(f, "dict"):
+        return f.dict()
+    elif dataclasses.is_dataclass(f):
+        return dataclasses.asdict(f)
+    elif isinstance(f, dict):
+        return f
+    else:
+        return str(f)
 
 async def _run_review(pr_api_url: str, repo_full_name: str, pr_number: int, commit_sha: str, token: str, installation_id: int):
     """The core async function that executes the review workflow."""
@@ -81,7 +98,7 @@ async def _run_review(pr_api_url: str, repo_full_name: str, pr_number: int, comm
                             pr_number=pr_number,
                             status=status,
                             findings_count=total_findings,
-                            ai_metadata={"model": "openai/gpt-oss-120b", "engine": "groq"}
+                            ai_metadata={"model": "openai/gpt-oss-120b", "engine": "groq", "findings": serialize_finding(combined_findings)}
                         )
                         session.add(log)
                         logger.info("Saved review log", status=status, findings=total_findings)
