@@ -332,7 +332,13 @@ For production, the service containerizes components into isolated services (Fas
 
 Run the full stack with a single command:
 ```bash
+cd backend
 docker-compose up --build -d
+```
+
+After the containers are running, apply the database migrations:
+```bash
+docker-compose exec web alembic upgrade head
 ```
 
 This starts:
