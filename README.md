@@ -17,8 +17,8 @@ An enterprise-grade, multi-tenant AI-powered code review assistant. It hooks dir
 - [See it in Action (Zero-Installation Walkthrough)](#-see-it-in-action-zero-installation-walkthrough)
 - [Technical Architecture & Flow](#%EF%B8%8F-technical-architecture--flow)
 - [Code Scanning Strategies](#%EF%B8%8F-code-scanning-strategies)
-- [Database & Storage Schema](#-database--storage-schema)
-- [Local Setup & Installation](#-local-setup--installation)
+- [Database & Storage Schema](#-database--storage-schema)- [Analytics & Dashboard API](#analytics--dashboard-api)
+- [Frontend Dashboard](#frontend-dashboard)- [Local Setup & Installation](#-local-setup--installation)
 - [Production Deployment with Docker Compose](#-production-deployment-with-docker-compose)
 - [Environment Configuration](#%EF%B8%8F-environment-configuration)
 
@@ -205,7 +205,7 @@ erDiagram
 ---
 
 ## Analytics & Dashboard API
-The application exposes RESTful endpoints to retrieve historical review data and SaaS metrics. These endpoints are designed to be consumed by a frontend dashboard (e.g., React, Next.js, Streamlit).
+The application exposes RESTful endpoints to retrieve historical review data and SaaS metrics. These endpoints are designed to be consumed by a frontend dashboard built with React and Vite.
 
 ### `GET /reviews/logs`
 Retrieves paginated review history.
@@ -230,6 +230,44 @@ Retrieves aggregated SaaS metrics and success rates.
   "total_bugs_detected": 342
 }
 ```
+
+---
+
+## Frontend Dashboard
+The dashboard is a React + Vite application located in the `frontend/` directory. It provides a visual interface for review analytics, repository status, and system health.
+
+### Key features
+- Real-time review metrics and success rates
+- Repository listing and PR analysis
+- Health dashboard for backend status
+- Responsive UI built with Tailwind CSS and Recharts
+
+### Install dependencies
+From the repository root:
+```bash
+cd frontend
+npm install
+```
+
+### Run the frontend locally
+```bash
+npm run dev
+```
+Open the URL shown in your terminal (typically `http://localhost:5173`).
+
+### Build for production
+```bash
+npm run build
+```
+
+### Preview the production build
+```bash
+npm run preview
+```
+
+### Notes
+- The frontend expects the backend API to be available under the same host or a configured proxy.
+- Adjust any API base URLs in `frontend/src/lib/api.ts` if needed when deploying to production.
 
 ---
 
