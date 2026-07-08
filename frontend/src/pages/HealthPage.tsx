@@ -39,24 +39,21 @@ export default function HealthPage() {
   const services = [
     {
       name: 'FastAPI Server',
-      status: data?.status === 'ok' ? 'healthy' : 'unhealthy',
+      status: data?.status === 'healthy' ? 'healthy' : 'unhealthy',
       icon: Server,
       description: 'Main application server',
-      responseTime: '~45ms',
     },
     {
       name: 'PostgreSQL Database',
-      status: data?.database === 'connected' ? 'healthy' : 'unhealthy',
+      status: data?.status === 'healthy' ? 'healthy' : 'unhealthy',
       icon: Database,
       description: 'Primary data store',
-      responseTime: '~12ms',
     },
     {
       name: 'Redis Cache',
-      status: data?.redis === 'connected' ? 'healthy' : 'unhealthy',
+      status: data?.status === 'healthy' ? 'healthy' : 'unhealthy',
       icon: Cpu,
       description: 'Task queue & caching',
-      responseTime: '~3ms',
     },
   ];
 
@@ -73,11 +70,11 @@ export default function HealthPage() {
       </div>
 
       {/* Overall Status */}
-      <Card className={data?.status === 'ok' ? 'border-success/30' : 'border-destructive/30'}>
+      <Card className={data?.status === 'healthy' ? 'border-success/30' : 'border-destructive/30'}>
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
-            <div className={`flex h-14 w-14 items-center justify-center rounded-full ${data?.status === 'ok' ? 'bg-success/10' : 'bg-destructive/10'}`}>
-              {data?.status === 'ok' ? (
+            <div className={`flex h-14 w-14 items-center justify-center rounded-full ${data?.status === 'healthy' ? 'bg-success/10' : 'bg-destructive/10'}`}>
+              {data?.status === 'healthy' ? (
                 <CheckCircle2 className="h-7 w-7 text-success" />
               ) : (
                 <XCircle className="h-7 w-7 text-destructive" />
@@ -85,7 +82,7 @@ export default function HealthPage() {
             </div>
             <div>
               <h2 className="text-xl font-semibold">
-                {data?.status === 'ok' ? 'All Systems Operational' : 'System Issues Detected'}
+                {data?.status === 'healthy' ? 'All Systems Operational' : 'System Issues Detected'}
               </h2>
               <p className="text-sm text-muted-foreground">
                 Last checked: {lastCheck.toLocaleTimeString()}
@@ -125,12 +122,6 @@ export default function HealthPage() {
                 <CardTitle className="text-base mt-2">{service.name}</CardTitle>
                 <CardDescription>{service.description}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Wifi className="h-3 w-3" />
-                  Response time: {service.responseTime}
-                </div>
-              </CardContent>
             </Card>
           ))
         )}

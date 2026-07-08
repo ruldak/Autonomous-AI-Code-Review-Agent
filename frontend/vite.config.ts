@@ -13,7 +13,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://laughing-space-fortnight-97xgqvg46r5w3pqv5-8000.app.github.dev',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
