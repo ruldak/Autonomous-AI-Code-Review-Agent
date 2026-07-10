@@ -245,7 +245,7 @@ The dashboard is a React + Vite application located in the `frontend/` directory
 
 | Review Logs | Review Log Details |
 | :---: | :---: |
-| ![Review Logs](./screenshots/review logs.png) | ![Review Log Details](./screenshots/review log detail.png) |
+| ![Review Logs](./screenshots/review-logs.png) | ![Review Log Details](./screenshots/review-log-detail.png) |
 
 
 ### Key features
