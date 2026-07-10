@@ -112,7 +112,7 @@ INFO:  [2026-06-23 21:38:17] Successfully posted inline GitHub review [pr_number
 ### Step 3: The Code Review Appears on GitHub
 On GitHub, the pull request interface updates immediately. The developer is notified with inline code reviews matching the exact lines in their code:
 
-![Inline Comment Screenshot](inline_comment_ss.png)
+![Inline Comment Screenshot](./screenshots/inline_comment_ss.png)
 
 ---
 
@@ -179,30 +179,31 @@ Using the high-speed tree-sitter libraries (`tree-sitter-python` and `tree-sitte
 The SQL database (configured via **SQLAlchemy Async Session**) maps SaaS integrations and review logs.
 
 ### Schema Relationships
-```mermaid
-erDiagram
-    tenants {
-        int id PK
-        int github_installation_id UK
-        datetime created_at
-    }
-    review_logs {
-        int id PK
-        int tenant_id FK
-        string repo_full_name
-        int pr_number
-        string status
-        int findings_count
-        json ai_metadata
-        datetime created_at
-    }
-    tenants ||--o{ review_logs : reviews
-```
 
-*   **`tenants`:** Tracks registered organizations integrating with the application (isolated by their unique GitHub Installation ID).
-*   **`review_logs`:** Audits completed reviews, recording the status (`PENDING`, `SUCCESS`, `FAILED`), total findings reported, and AI parameters (tokens used, response payload metadata).
+#### `tenants`
+Tracks registered organizations integrating with the application (isolated by their unique GitHub Installation ID).
 
----
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INT` | `PRIMARY KEY` | Unique internal identifier for the tenant. |
+| `github_installation_id` | `INT` | `UNIQUE`, `NOT NULL` | The unique GitHub Installation ID used for organization isolation. |
+| `created_at` | `DATETIME` | `NOT NULL` | Timestamp of when the tenant was registered. |
+
+#### `review_logs`
+Audits completed reviews, recording the status (`PENDING`, `SUCCESS`, `FAILED`), total findings reported, and AI parameters (tokens used, response payload metadata).
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INT` | `PRIMARY KEY` | Unique identifier for the review log. |
+| `tenant_id` | `INT` | `FOREIGN KEY` | References `tenants(id)`. Identifies which tenant owns the review. |
+| `repo_full_name` | `VARCHAR` | `NOT NULL` | Full name of the repository (e.g., `owner/repo`). |
+| `pr_number` | `INT` | `NOT NULL` | The Pull Request number being reviewed. |
+| `status` | `VARCHAR` | `NOT NULL` | Execution status (`PENDING`, `SUCCESS`, `FAILED`). |
+| `findings_count` | `INT` | | Total number of findings reported in the review. |
+| `ai_metadata` | `JSON` | | AI parameters, tokens used, and response payload metadata. |
+| `created_at` | `DATETIME` | `NOT NULL` | Timestamp of when the review was initiated. |
+
+> **Relationship:** A `tenant` can have multiple `review_logs` (1-to-Many).
 
 ## Analytics & Dashboard API
 The application exposes RESTful endpoints to retrieve historical review data and SaaS metrics. These endpoints are designed to be consumed by a frontend dashboard built with React and Vite.
@@ -235,6 +236,17 @@ Retrieves aggregated SaaS metrics and success rates.
 
 ## Frontend Dashboard
 The dashboard is a React + Vite application located in the `frontend/` directory. It provides a visual interface for review analytics, repository status, and system health.
+
+### 📸 UI Preview
+
+| Main Dashboard & Analytics | Repositories |
+| :---: | :---: |
+| ![Main Dashboard](./screenshots/dashboard.png) | ![Repositories](./screenshots/repositories.png) |
+
+| Review Logs | Review Log Details |
+| :---: | :---: |
+| ![Review Logs](./screenshots/review logs.png) | ![Review Log Details](./screenshots/review log detail.png) |
+
 
 ### Key features
 - Real-time review metrics and success rates
